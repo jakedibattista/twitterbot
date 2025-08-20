@@ -1,0 +1,24 @@
+# X API
+tweepy>=4.14.0
+requests>=2.31.0
+requests-oauthlib>=1.3.1
+
+# Google Sheets
+google-auth>=2.23.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.0
+google-api-python-client>=2.100.0
+gspread>=5.10.0
+
+# Configuration and Environment
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Logging and Utilities
+structlog>=23.1.0
+typing-extensions>=4.7.0
+
+# AI/Summarization (optional)
+openai>=1.0.0
+google-generativeai>=0.3.0
