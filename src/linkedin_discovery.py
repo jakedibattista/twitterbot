@@ -104,10 +104,9 @@ class LinkedInDiscovery:
         clean_username = username.replace("_", " ").replace("-", " ")
         suggestions["username_search"] = LinkedInDiscovery.suggest_linkedin_search_url(clean_username)
         
-        # Google search suggestion for LinkedIn profile
+        # Google search suggestion for LinkedIn profile (simple query works better)
         google_query = quote_plus(f'"{name}" site:linkedin.com/in')
-        if location:
-            google_query += f" {quote_plus(location)}"
+        # Note: Keep query simple - adding location often reduces results
         suggestions["google_search"] = f"https://www.google.com/search?q={google_query}"
         
         return suggestions

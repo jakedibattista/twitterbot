@@ -36,7 +36,7 @@ class ConversationSummarizer:
     def _setup_client(self) -> None:
         """Set up OpenAI client with API key."""
         try:
-            self.client = openai.OpenAI(api_key=self.api_key)
+            self.client = openai.OpenAI(api_key=self.api_key, timeout=30.0)
             logger.info("OpenAI client initialized successfully")
         except Exception as e:
             logger.error("Failed to initialize OpenAI client", error=str(e))

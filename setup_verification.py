@@ -40,6 +40,7 @@ def verify_setup() -> bool:
         True if all verifications pass, False otherwise.
     """
     logger.info("Starting setup verification...")
+    logger.info("💡 Tip: Run 'python setup_linkedin_discovery.py' to verify LinkedIn discovery features")
     
     # 1. Check environment file
     env_file = Path(".env")

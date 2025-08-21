@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "twitter-dm-organizer"
+name = "twitterbot"
 version = "0.1.0"
 description = "A personal tool to organize Twitter/X direct messages by extracting 1-on-1 conversations and summarizing them in a Google Sheet"
 authors = [
@@ -11,13 +11,13 @@ authors = [
 ]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
+
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -39,6 +39,9 @@ dependencies = [
     "structlog>=23.1.0",
     "typing-extensions>=4.7.0",
     "openai>=1.0.0",
+    "google-generativeai>=0.8.0",
+    "beautifulsoup4>=4.12.0",
+    "googlesearch-python>=1.2.0",
 ]
 
 [project.optional-dependencies]
@@ -74,7 +77,7 @@ where = ["src"]
 # Black code formatting
 [tool.black]
 line-length = 88
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py39', 'py310', 'py311', 'py312']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -103,7 +106,7 @@ src_paths = ["src", "tests"]
 
 # MyPy type checking
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

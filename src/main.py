@@ -25,7 +25,7 @@ from twitter.models import ConversationBatch
 from google_sheets.client import sheets_client
 from google_sheets.formatter import SheetsFormatter
 from summarizer.conversation_summarizer import conversation_summarizer
-from linkedin_ai_discovery import ai_linkedin_discovery
+from gemini_linkedin_discovery import GeminiLinkedInDiscovery
 
 # Configure structured logging
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
@@ -124,7 +124,8 @@ class TwitterDMOrganizer:
                 if enrich_limit > 0:
                     users_to_enrich = users_to_enrich[:enrich_limit]
                 if users_to_enrich:
-                    enriched = ai_linkedin_discovery.bulk_discover_linkedin(users_to_enrich)
+                    gemini_linkedin_discovery = GeminiLinkedInDiscovery()
+                    enriched = gemini_linkedin_discovery.bulk_discover_linkedin(users_to_enrich)
                     # Merge back later by username
                     enrichment_by_username = {e["username"]: e for e in enriched}
                 else:
@@ -139,8 +140,8 @@ class TwitterDMOrganizer:
             if enrichment_by_username:
                 for item in formatted_data:
                     enrich = enrichment_by_username.get(item.get("username"))
-                    if enrich and enrich.get("ai_linkedin_url") and not item.get("linkedin_url"):
-                        item["linkedin_url"] = enrich.get("ai_linkedin_url")
+                    if enrich and enrich.get("linkedin_url") and not item.get("linkedin_url"):
+                        item["linkedin_url"] = enrich.get("linkedin_url")
                         item["linkedin_confidence"] = enrich.get("linkedin_confidence")
             
             # Step 5: Write to Google Sheets

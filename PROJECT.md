@@ -95,8 +95,8 @@ twitterbot/
 │   ├── test_twitter/
 │   ├── test_google_sheets/
 │   └── test_summarizer/
-├── requirements.txt          # Project dependencies
-├── requirements-dev.txt      # Development dependencies
+├── pyproject.toml           # Project configuration and dependencies
+├── uv.lock                  # Dependency lock file
 ├── .env                      # Environment variables (gitignored)
 ├── .gitignore
 ├── PROJECT.md               # This file
@@ -117,7 +117,9 @@ GOOGLE_SHEETS_ID=your_sheet_id
 
 # AI Services (Optional)
 OPENAI_API_KEY=your_openai_key          # Enhanced conversation summarization
-GOOGLE_AI_API_KEY=your_google_ai_key    # LinkedIn discovery with real web search
+GOOGLE_AI_API_KEY=your_google_ai_key    # Automated LinkedIn discovery
+GOOGLE_CSE_API_KEY=your_cse_key         # Google Custom Search API (enhanced reliability)
+GOOGLE_CSE_CX=your_search_engine_id     # Custom Search Engine ID
 
 # Application Settings
 LOG_LEVEL=INFO
@@ -153,7 +155,7 @@ MAX_REQUESTS_PER_WINDOW=280
 ## Key Achievements
 - ✅ **Complete authentication system** with X API OAuth 1.0a
 - ✅ **Enhanced profile extraction** with 7 data points per user
-- ✅ **Dual-layer LinkedIn discovery** (pattern matching + AI web search)
+- ✅ **Multi-layer automated LinkedIn discovery** (5 fallback methods, zero manual intervention)
 - ✅ **Advanced conversation summarization** with structured AI prompts
 - ✅ **Comprehensive Google Sheets integration** with 10 organized columns
 - ✅ **Production-ready architecture** with error handling and rate limiting

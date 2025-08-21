@@ -1,339 +1,206 @@
-# Twitter DM to Google Sheets Organizer
+# Twitter DM Organizer
 
-A personal tool to organize Twitter/X direct messages by extracting 1-on-1 conversations and summarizing them in a Google Sheet for easy review and organization.
+A simple tool that takes your Twitter/X direct messages and organizes them in a Google Spreadsheet. It automatically finds LinkedIn profiles for people you chat with and creates summaries of your conversations.
 
-## Features
+## What This Does
 
-- 🔐 **Secure Authentication**: OAuth integration with X API and Google Sheets
-- 📱 **DM Extraction**: Fetch 1-on-1 direct message conversations with X API v2
-- 🤖 **Enhanced AI Summarization**: Intelligent conversation summaries focused on key decisions and actions
-- 🔗 **Smart LinkedIn Discovery**: AI-powered LinkedIn profile discovery using Google Gemini with real web search
-- 👤 **Rich Profile Data**: Extract real names, locations, bios, companies, and social media links
-- 📊 **Comprehensive Google Sheets**: Organized output with enhanced profile information and conversation insights
-- ⚡ **Rate Limit Handling**: Respectful API usage with automatic rate limiting and retry logic
-- 🛡️ **Privacy Protection**: All processing happens locally with privacy-conscious summarization
-- 🔄 **Fallback Systems**: Graceful degradation when AI services are unavailable
+- 📱 **Gets your Twitter DMs**: Fetches your private message conversations
+- 🤖 **Creates summaries**: Uses AI to summarize what you talked about
+- 🔍 **Finds LinkedIn profiles**: Automatically searches for people's LinkedIn pages
+- 📊 **Saves to Google Sheets**: Puts everything in a neat spreadsheet
 
-## Quick Start
+## Before You Start
 
-### 1. Prerequisites
+You'll need:
+- Python 3.9 or higher installed on your computer
+- A Twitter Developer account (free, but requires approval)
+- A Google account for the spreadsheet
+- Some API keys (we'll help you get these)
 
-- Python 3.8 or higher
-- X (Twitter) Developer Account with **DM permissions** (requires app approval)
-- Google Cloud Project with Sheets API enabled
-- OpenAI API key (optional, for enhanced AI summaries)
-- Google AI API key (optional, for LinkedIn profile discovery)
+## Setup Guide
 
-### 2. Installation
+### Step 1: Get the Code
 
 ```bash
-# Clone the repository
+# Download this project
 git clone <your-repo-url>
 cd twitterbot
 
-# Install dependencies
-pip install -r requirements.txt
-
-# For development
-pip install -r requirements-dev.txt
+# Install everything you need
+uv sync
+# OR if you don't have uv:
+pip install -e .
 ```
 
-### 3. Configuration
+### Step 2: Get Your API Keys
 
-1. **Copy environment template:**
+#### Twitter/X API Keys
+1. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
+2. Create a new app
+3. Apply for "Direct Message" permissions (this might take a few days)
+4. Copy your 4 keys: API Key, API Secret, Access Token, Access Token Secret
+
+#### Google Sheets Setup
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project
+3. Enable "Google Sheets API"
+4. Create a "Service Account" 
+5. Download the JSON file (save it as `config/service_account.json`)
+6. Create a new Google Spreadsheet
+7. Share it with the email from your JSON file (give it "Editor" permission)
+8. Copy the spreadsheet ID from the URL
+
+#### Optional: AI Features
+- **OpenAI**: Get an API key from [OpenAI](https://openai.com/) for better summaries
+- **Google AI**: Get an API key from [Google AI Studio](https://makersuite.google.com/) for LinkedIn search
+- **Google Custom Search** (Recommended for reliable LinkedIn discovery):
+  1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+  2. Enable "Custom Search JSON API"
+  3. Create API credentials and copy the API key
+  4. Go to [Programmable Search Engine](https://programmablesearchengine.google.com/)
+  5. Create a new search engine (search the entire web)
+  6. Copy the Search Engine ID (cx parameter)
+
+### Step 3: Configure Your Settings
+
+1. Copy the example settings:
    ```bash
    cp example.env .env
    ```
 
-2. **Configure X API credentials** in `.env`:
-   - Get credentials from [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
+2. Edit the `.env` file with your information:
    ```env
-   X_API_KEY=your_api_key_here
-   X_API_SECRET=your_api_secret_here
-   X_ACCESS_TOKEN=your_access_token_here
-   X_ACCESS_TOKEN_SECRET=your_access_token_secret_here
-   ```
+   # Your Twitter keys
+   X_API_KEY=paste_your_api_key_here
+   X_API_SECRET=paste_your_api_secret_here
+   X_ACCESS_TOKEN=paste_your_access_token_here
+   X_ACCESS_TOKEN_SECRET=paste_your_access_token_secret_here
 
-3. **Set up Google Sheets:**
-   - Create a [Google Cloud Project](https://console.cloud.google.com/)
-   - Enable Google Sheets API
-   - Create a Service Account and download the JSON key file
-   - Place the key file in `config/service_account.json`
-   - Create a Google Sheet and add the service account email as an editor
-   - Add the Sheet ID to `.env`:
-   ```env
-   GOOGLE_SHEETS_ID=your_sheet_id_here
+   # Your Google Sheets info
+   GOOGLE_SHEETS_ID=paste_your_spreadsheet_id_here
    GOOGLE_SHEETS_CREDENTIALS_PATH=config/service_account.json
-   ```
 
-4. **Optional - AI Services:**
-   ```env
-   # Enhanced conversation summarization
-   OPENAI_API_KEY=your_openai_key_here
+   # Optional AI features
+   OPENAI_API_KEY=paste_your_openai_key_here
+   GOOGLE_AI_API_KEY=paste_your_google_ai_key_here
    
-   # LinkedIn profile discovery with real web search
-   GOOGLE_AI_API_KEY=your_google_ai_key_here
+   # Optional: More reliable LinkedIn search (recommended)
+   GOOGLE_CSE_API_KEY=paste_your_custom_search_api_key_here
+   GOOGLE_CSE_CX=paste_your_search_engine_id_here
    ```
 
-### 4. Verify Setup
+### Step 4: Test Everything
 
 ```bash
+# Check if everything is working
 python setup_verification.py
+
+# Test LinkedIn search specifically
+python setup_linkedin_discovery.py
 ```
 
-This will verify all your API credentials and connections.
+## How to Use It
 
-### 5. Run the Organizer
-
+### Test Without Twitter API (Good for Testing)
 ```bash
-# Basic usage with user IDs (module)
-python -m src.main --participant-ids USER_ID_1 USER_ID_2 USER_ID_3
+# Use uv run to ensure dependencies are available
+uv run python test_manual_conversation.py
 
-# Or after editable install, use the CLI entrypoint
-twitter-dm-organizer --participant-ids USER_ID_1 USER_ID_2 USER_ID_3
-
-# Discover recent DM participants automatically (e.g., last 10)
-python -m src.main --discover-recent 10 --max-messages 50
-
-# Limit to messages from the last N days
-python -m src.main --discover-recent 10 --since-days 30
-
-# Enrich missing LinkedIn URLs using AI (optional)
-python -m src.main --discover-recent 10 --enrich-linkedin --enrich-limit 5
-
-# Advanced options
-python -m src.main \
-  --participant-ids USER_ID_1 USER_ID_2 \
-  --max-messages 50 \
-  --since-days 60 \
-  --clear-sheet \
-  --no-summaries
-```
-
-## Usage Examples
-
-### Basic Conversation Export
-```bash
-python -m src.main --participant-ids 123456789 987654321
-```
-
-### Large Export with Custom Limits
-```bash
-python -m src.main \
-  --participant-ids 123456789 987654321 456789123 \
-  --max-messages 200 \
-  --clear-sheet
-```
-
-### Dry Run (Verification Only)
-```bash
-python -m src.main --participant-ids 123456789 --dry-run
-```
-
-### Manual Conversation Mode (no X API required)
-```bash
+# OR if you installed with pip install -e .
 python test_manual_conversation.py
-# Prompts for username/name and conversation lines; can run Gemini to find LinkedIn and write to Sheets
 ```
+This lets you type in fake conversations to test the LinkedIn search and spreadsheet features.
 
-### Verify DM Access
+### Get Real Twitter DMs
 ```bash
-# Confirms API credentials and DM permissions
-python setup_verification.py
+# Get conversations with specific people (you need their user IDs)
+uv run python -m src.main --participant-ids 123456789 987654321
+
+# Or find recent conversations automatically
+uv run python -m src.main --discover-recent 10
 ```
 
-## Command Line Options
+### Find User IDs
+To get someone's Twitter user ID:
+1. Use online tools like "Twitter ID Lookup"
+2. Or search for their username in Twitter API docs
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--participant-ids` | User IDs to fetch conversations with | - |
-| `--discover-recent` | Discover and use N recent DM participants | - |
-| `--max-messages` | Maximum messages per conversation | 100 |
-| `--no-summaries` | Skip AI summary generation | False |
-| `--clear-sheet` | Clear existing sheet data before writing | False |
-| `--dry-run` | Run verification only, don't fetch data | False |
-| `--since-days` | Only fetch messages from the last N days | None |
-| `--enrich-linkedin` | Use AI to fill missing LinkedIn URLs | False |
-| `--enrich-limit` | Limit AI enrichment to first N users (0 = all) | 0 |
+## What You'll Get
 
-## Enhanced Output Format
-
-The Google Sheet will contain comprehensive profile and conversation data:
-
-| Column | Description |
-|--------|-------------|
-| Username | Twitter username/handle |
-| User ID | Twitter user ID (for stable updates) |
-| Real Name | Full name from Twitter profile |
-| LinkedIn URL | Discovered LinkedIn profile (AI-powered) |
-| Location | User's location |
-| Bio | Twitter bio/description |
-| Website | Personal/company website |
-| Verified | Twitter verification status |
-| Conversation Summary | AI-enhanced summary focusing on key decisions and actions |
-| Message Count | Number of messages in conversation |
-| Last Message Date | Date of most recent message |
-
-## Project Structure
-
-```
-twitterbot/
-├── src/
-│   ├── twitter/              # X API integration
-│   │   ├── client.py         # API client and OAuth auth
-│   │   ├── dm_fetcher.py     # DM retrieval with rate limiting
-│   │   └── models.py         # Enhanced data models with LinkedIn extraction
-│   ├── google_sheets/        # Google Sheets integration
-│   │   ├── client.py         # Sheets API client with enhanced columns
-│   │   └── formatter.py      # Data formatting and validation
-│   ├── summarizer/           # AI-powered conversation analysis
-│   │   └── conversation_summarizer.py  # Enhanced prompts for key insights
-│   ├── linkedin_discovery.py      # Manual LinkedIn pattern matching
-│   ├── gemini_linkedin_discovery.py  # AI-powered LinkedIn discovery
-│   └── main.py              # Main orchestration with CLI interface
-├── config/
-│   ├── settings.py          # Configuration management (packaged under src/config)
-│   └── service_account.json # Google credentials (you add this)
-├── tests/                   # Test suite
-├── requirements.txt         # Production dependencies
-├── requirements-dev.txt     # Development dependencies
-├── pyproject.toml          # Project configuration
-├── .env                    # Environment variables (you create this)
-└── README.md               # This file
-```
-
-## Development
-
-### Code Quality
-
-```bash
-# Format code
-black src/ tests/
-
-# Sort imports
-isort src/ tests/
-
-# Type checking
-mypy src/
-
-# Linting
-flake8 src/ tests/
-
-# Run tests
-pytest
-```
-
-### Installing in Development Mode
-
-```bash
-pip install -e .
-```
-
-## LinkedIn Profile Discovery
-
-This tool features **dual-layer LinkedIn discovery** for comprehensive profile information:
-
-### 🔍 **Automatic Pattern Detection**
-- Extracts LinkedIn URLs directly mentioned in Twitter bios
-- Detects patterns like: "LinkedIn: linkedin.com/in/username"
-- Handles website URLs that are LinkedIn profiles
-- Recognizes @linkedin: username formats
-
-### 🤖 **AI-Powered Discovery (Gemini 2.5 Flash)**
-- Produces a single LinkedIn profile URL (or NOT_FOUND) from name, Twitter handle, optional location/company, and conversation summary
-- Iterative self-evaluation loop: generate a candidate, then validate PASS/FAIL; repeats up to 3 attempts
-- Output: one `https://www.linkedin.com/in/...` URL when confident
-
-### 🎯 **Smart Search Strategies**
-```
-"[Name]" linkedin [location]
-"[Name]" [company] linkedin  
-"[Username]" twitter linkedin
-site:linkedin.com/in "[Name]"
-```
-
-### 📊 **LinkedIn Discovery Results**
-- **High Confidence**: Clear match with multiple verification points
-- **Medium/Low**: Potential matches requiring manual review
-- **Not Found**: No confident matches (better than false positives!)
-- **Search URLs**: Manual verification links when AI is uncertain
-
-**Example Output:**
-```
-LinkedIn URL: https://www.linkedin.com/in/john-doe-tech
-Confidence: HIGH
-Reasoning: Profile matches name, San Francisco location, and TechCorp employment from bio
-```
+Your Google Spreadsheet will have columns for:
+- **Username**: Their Twitter handle
+- **Real Name**: Their actual name
+- **LinkedIn**: Their LinkedIn profile (found automatically!)
+- **Location**: Where they're from
+- **Bio**: Their Twitter description
+- **Website**: Their personal website
+- **Conversation Summary**: What you talked about
+- **Message Count**: How many messages you exchanged
+- **Last Message Date**: When you last chatted
 
 ## Troubleshooting
 
-### Common Issues
+### "Authentication Failed"
+- Double-check your API keys in the `.env` file
+- Make sure you copied them exactly (no extra spaces)
 
-1. **X API Authentication Errors**
-   - Verify your API keys in `.env`
-   - Ensure your Twitter Developer App has the correct permissions
-   - Check that your access tokens are valid
+### "Can't Access Google Sheets"
+- Make sure you shared your spreadsheet with the email from your JSON file
+- Check that the JSON file is in the right place: `config/service_account.json`
 
-2. **Google Sheets Access Denied**
-   - Verify the service account JSON file path
-   - Ensure the service account email is added as an editor to your sheet
-   - Check that the Google Sheets API is enabled in your project
+### "Rate Limit Errors"
+- Twitter limits how many requests you can make
+- Try smaller numbers (like `--discover-recent 5` instead of 20)
+- Wait a bit and try again
 
-3. **Rate Limit Errors**
-   - The tool automatically handles rate limits
-   - Reduce `--max-messages` if you hit limits frequently
-   - Consider running smaller batches of conversations
+### "LinkedIn Search Not Working"
+- Make sure you have `GOOGLE_AI_API_KEY` in your `.env` file
+- The tool will still work, just won't find LinkedIn profiles automatically
 
-4. **OpenAI API Errors**
-   - Verify your API key is valid and has credits
-   - The tool will fall back to basic summaries if OpenAI fails
+## How LinkedIn Search Works
 
-### Getting User IDs
+The tool automatically finds LinkedIn profiles by:
+1. **Smart Search**: Uses AI to search Google for the person's LinkedIn
+2. **Multiple Methods**: Tries different search approaches if one fails
+3. **No Manual Work**: Gets the first good result automatically
+4. **Safe Fallback**: Gives you a search link if it can't find anything
 
-To find Twitter user IDs for the `--participant-ids` parameter:
-
-1. Use the Twitter API to look up users by username
-2. Use online tools like "Twitter ID Lookup"
-3. Check the user's profile URL or API responses
-
-### Logs and Debugging
-
-The application uses structured logging. Set log level in `.env`:
-```env
-LOG_LEVEL=DEBUG  # DEBUG, INFO, WARNING, ERROR
+Example:
+```
+🔍 Searching for LinkedIn profile...
+✅ Found LinkedIn profile automatically: https://www.linkedin.com/in/john-smith-123
 ```
 
-## Privacy and Security
+## Privacy & Security
 
-- All message processing happens locally on your machine
-- No conversation data is stored externally (except in your Google Sheet)
-- AI summarization is designed to protect privacy and exclude personal details
-- Credentials are managed through environment variables and excluded from version control
+- Everything runs on your computer (nothing sent to random servers)
+- Your conversations are only saved to YOUR Google Spreadsheet
+- AI summaries are designed to protect sensitive information
+- All your API keys stay in your `.env` file (never shared)
 
-## Rate Limits
+## Getting Help
 
-The tool respects X API rate limits:
-- DM endpoints: 300 requests per 15-minute window
-- User lookups: 300 requests per 15-minute window
-- Automatic retry logic with exponential backoff
+If something isn't working:
+1. Check the troubleshooting section above
+2. Look at the error messages (they usually tell you what's wrong)
+3. Make sure all your API keys are correct
+4. Try the test scripts first before using real Twitter data
 
-## Contributing
+## What's in This Project
 
-This is a personal project, but suggestions and improvements are welcome:
+```
+twitterbot/
+├── src/                     # Main code
+├── config/                  # Your settings and keys
+├── tests/                   # Test files
+├── test_manual_conversation.py  # Test without Twitter
+├── setup_verification.py    # Check if everything works
+├── .env                     # Your API keys (you create this)
+└── README.md               # This file
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run the test suite
-5. Submit a pull request
+## Legal Stuff
 
-## License
-
-MIT License - see LICENSE file for details.
-
-## Acknowledgments
-
-- Built with [Tweepy](https://github.com/tweepy/tweepy) for X API integration
-- Uses [gspread](https://github.com/burnash/gspread) for Google Sheets
-- AI summaries powered by [OpenAI](https://openai.com/)
-- Structured logging with [structlog](https://github.com/hynek/structlog)
+- MIT License (means you can use it however you want)
+- Respects Twitter's rate limits
+- Only accesses your own DMs (with your permission)

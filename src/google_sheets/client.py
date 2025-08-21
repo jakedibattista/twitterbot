@@ -168,17 +168,13 @@ class GoogleSheetsClient:
                 ]
                 rows_to_add.append(row)
             
-            # Find the next empty row
-            next_row = len(self.worksheet.get_all_values()) + 1
-            
-            # Batch update for efficiency
-            cell_range = f"A{next_row}:K{next_row + len(rows_to_add) - 1}"
-            self.worksheet.update(cell_range, rows_to_add)
+            # Append values using Sheets API behavior to always use the next empty row
+            # This avoids race conditions and header off-by-ones
+            self.worksheet.append_rows(rows_to_add, value_input_option="USER_ENTERED")
             
             logger.info(
                 "Conversations written successfully",
-                rows_added=len(rows_to_add),
-                start_row=next_row
+                rows_added=len(rows_to_add)
             )
             
         except Exception as e:
