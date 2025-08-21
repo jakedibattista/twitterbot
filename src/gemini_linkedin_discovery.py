@@ -40,7 +40,10 @@ def find_linkedin_profile(
     website: Optional[str] = None,
     conversation_summary: Optional[str] = None
 ) -> Optional[str]:
-    """Find LinkedIn profile using Gemini and Google Search.
+    """Find LinkedIn profile prioritizing Google Search results over AI generation.
+    
+    This function now prioritizes reliable Google search results over AI-generated
+    answers to reduce hallucinations and improve accuracy.
     
     Args:
         real_name: Person's real name.
@@ -51,26 +54,33 @@ def find_linkedin_profile(
     Returns:
         LinkedIn URL if found, else None.
     """
+    # Build simple search query - complex queries often return no results
+    query = f'site:linkedin.com/in "{real_name}"'
+    # Note: We avoid adding website/location to keep query simple and effective
+    
+    logger.info("Prioritizing Google search over AI generation", query=query, name=real_name)
+    
+    # PRIORITY 1: Try Google search methods first (most reliable)
+    google_result = _try_google_search_methods(query)
+    if google_result:
+        logger.info("Found LinkedIn profile via Google search", url=google_result)
+        return google_result
+    
+    # PRIORITY 2: Only use AI as backup if Google search fails completely
     api_key = getattr(settings, 'google_ai_api_key', None)
     if not api_key or not GEMINI_SDK_AVAILABLE:
-        logger.warning("Gemini unavailable. Set GOOGLE_AI_API_KEY in .env and install google-generativeai.")
-        return fallback_google_search(real_name, location, website, conversation_summary)
+        logger.warning("Google search failed and Gemini unavailable. Set GOOGLE_AI_API_KEY in .env and install google-generativeai.")
+        return _generate_manual_search_url(query)
     
     try:
+        logger.info("Google search failed, trying AI as backup", name=real_name)
+        
         # Configure Gemini
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-pro')
         
-        # Build the search prompt
-        search_terms = [real_name]
-        if website:
-            search_terms.append(website)
-        if location:
-            search_terms.append(location)
-        
         # Use simpler query for better results - just name + site
         search_query = f'site:linkedin.com/in "{real_name}"'
-        # Note: Adding website/location often reduces results, so we keep it simple
         
         prompt = (
             f"I need to find the LinkedIn profile for: {real_name}\n"
@@ -84,13 +94,13 @@ def find_linkedin_profile(
             f"or return 'NOT_FOUND' if you cannot find a suitable match."
         )
         
-        logger.info("Searching for LinkedIn profile", name=real_name, query=search_query)
+        logger.info("Using AI as backup for LinkedIn profile search", name=real_name, query=search_query)
         
         # Generate response
         response = model.generate_content(prompt)
         response_text = response.text.strip()
         
-        logger.info("Gemini response", response=response_text)
+        logger.info("AI backup response", response=response_text)
         
         # Extract LinkedIn URL from response
         url_match = re.search(r'https?://(?:www\.)?linkedin\.com/in/[\w\-_/]+/?', response_text, re.IGNORECASE)
@@ -99,33 +109,24 @@ def find_linkedin_profile(
             
             # Verify URL format is correct
             if validate_linkedin_url(candidate_url):
-                logger.info("Found LinkedIn URL", url=candidate_url)
+                logger.info("Found LinkedIn URL via AI backup", url=candidate_url)
                 return candidate_url
             else:
-                logger.warning("Invalid LinkedIn URL format", url=candidate_url)
+                logger.warning("Invalid LinkedIn URL format from AI", url=candidate_url)
         
-        # If no valid URL found in response, try fallback
+        # If no valid URL found in response, generate manual search URL
         if "NOT_FOUND" not in response_text.upper():
-            logger.warning("No LinkedIn URL found in Gemini response")
+            logger.warning("No LinkedIn URL found in AI response")
         
-        return fallback_google_search(real_name, location, website, conversation_summary)
+        return _generate_manual_search_url(query)
     
     except Exception as e:
-        logger.error("Gemini discovery failed", error=str(e))
-        return fallback_google_search(real_name, location, website, conversation_summary)
+        logger.error("AI backup discovery failed", error=str(e))
+        return _generate_manual_search_url(query)
 
-def fallback_google_search(
-    real_name: str,
-    location: Optional[str] = None,
-    website: Optional[str] = None,
-    conversation_summary: Optional[str] = None
-) -> Optional[str]:
-    """Fallback: Automatically get first LinkedIn result from Google search."""
-    # Build simple search query - complex queries often return no results
-    query = f'site:linkedin.com/in "{real_name}"'
-    # Note: We avoid adding website/location to keep query simple and effective
-    
-    logger.info("Attempting automated Google search", query=query)
+def _try_google_search_methods(query: str) -> Optional[str]:
+    """Try all Google search methods in order of reliability."""
+    logger.info("Attempting Google search methods", query=query)
     
     # Try Google Custom Search API first (most reliable)
     api_result = _google_custom_search(query)
@@ -142,13 +143,40 @@ def fallback_google_search(
     if automated_result:
         return automated_result
     
-    # Fallback to manual search URL if automation fails
+    logger.info("All Google search methods failed")
+    return None
+
+
+def _generate_manual_search_url(query: str) -> str:
+    """Generate a manual Google search URL as final fallback."""
     import urllib.parse
     encoded_query = urllib.parse.quote_plus(query)
     search_url = f"https://www.google.com/search?q={encoded_query}"
     
-    logger.info("Automation failed, generated manual search URL", query=query, url=search_url)
+    logger.info("Generated manual search URL", query=query, url=search_url)
     return search_url
+
+
+def fallback_google_search(
+    real_name: str,
+    location: Optional[str] = None,
+    website: Optional[str] = None,
+    conversation_summary: Optional[str] = None
+) -> Optional[str]:
+    """Legacy fallback function - now redirects to prioritized search."""
+    # Build simple search query - complex queries often return no results
+    query = f'site:linkedin.com/in "{real_name}"'
+    # Note: We avoid adding website/location to keep query simple and effective
+    
+    logger.info("Using legacy fallback (redirecting to prioritized search)", query=query)
+    
+    # Try Google search methods
+    google_result = _try_google_search_methods(query)
+    if google_result:
+        return google_result
+    
+    # Return manual search URL if all automation fails
+    return _generate_manual_search_url(query)
 
 
 def _googlesearch_library(query: str) -> Optional[str]:
@@ -336,11 +364,12 @@ def _automated_google_search(query: str) -> Optional[str]:
         logger.warning("Automated Google search failed", error=str(e))
         return None
 
-def test_gemini_linkedin_discovery():
-    """Test the Gemini LinkedIn discovery with a real example."""
+def test_prioritized_linkedin_discovery():
+    """Test the prioritized LinkedIn discovery with Google search first."""
     
-    print("🔍 Testing Gemini LinkedIn Discovery")
+    print("🔍 Testing Prioritized LinkedIn Discovery")
     print("="*50)
+    print("Note: Now prioritizing Google search over AI generation")
     
     # Test with sample information
     print("Testing with sample information...")
@@ -354,11 +383,16 @@ def test_gemini_linkedin_discovery():
     print("\n📊 Discovery Results:")
     print("="*30)
     print(f"Result: {result or 'Not found'}")
+    print("\nThis result comes from:")
+    print("1. Google Custom Search API (if configured)")
+    print("2. googlesearch-python library")
+    print("3. Automated Google scraping")
+    print("4. AI generation (only as backup)")
     
     return result is not None
 
 
 if __name__ == "__main__":
-    test_gemini_linkedin_discovery()
+    test_prioritized_linkedin_discovery()
 
 
